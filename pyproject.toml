@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "poetry-grpc-plugin"
-version = "0.1.0"
+version = "0"
 description = "gRPC Poetry plugin"
 authors = ["Federico Jaite <fede_654_87@hotmail.com>"]
 license = "MIT"
@@ -30,6 +30,9 @@ isort = "^5.9.3"
 flake8 = "^3.9.2"
 mypy = "^0.910"
 pytest = "^6.2.4"
+
+[tool.poetry-version-plugin]
+source = "git-tag"
 
 [tool.poetry.plugins."poetry.application.plugin"]
 grpc = "poetry_grpc_plugin.plugins:GrpcApplicationPlugin"
