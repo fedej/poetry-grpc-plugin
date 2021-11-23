@@ -16,6 +16,19 @@ from poetry.plugins import ApplicationPlugin
 from poetry.utils.helpers import module_name
 
 
+def well_known_protos_path():
+    if sys.version_info >= (3, 9):
+
+        with importlib.resources.as_file(
+            importlib.resources.files("grpc_tools") / "_proto"
+        ) as path:
+            return str(path)
+    else:
+        import pkg_resources
+
+        return pkg_resources.resource_filename("grpc_tools", "_proto")
+
+
 def run_protoc(proto_path: str = ".", python_out: str = ".", **kwargs: str) -> int:
     # mypy-protobuf plugin is installed inside Poetry's virtualenv, needs to be in PATH
     if sys.executable:
@@ -23,9 +36,6 @@ def run_protoc(proto_path: str = ".", python_out: str = ".", **kwargs: str) -> i
         path = os.getenv("PATH", "")
         if path and venv_dir not in path:
             os.environ["PATH"] = f"{path}:{venv_dir}"
-
-    with importlib.resources.path("grpc_tools", "_proto") as include_path:
-        well_known_protos_include = str(include_path)
 
     inclusion_root = Path(proto_path).resolve(strict=True)
     proto_files = [str(f.resolve()) for f in inclusion_root.rglob("*.proto")]
@@ -39,7 +49,7 @@ def run_protoc(proto_path: str = ".", python_out: str = ".", **kwargs: str) -> i
     args = [f"--{key}={value}" for key, value in config.items()]
 
     command = (
-        ["grpc_tools.protoc", f"--proto_path={well_known_protos_include}"]
+        ["grpc_tools.protoc", f"--proto_path={well_known_protos_path()}"]
         + args
         + proto_files
     )
