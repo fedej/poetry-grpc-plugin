@@ -39,6 +39,18 @@ grpc = "poetry_grpc_plugin.plugins:GrpcApplicationPlugin"
 
 [tool.black]
 line-length = 88
+exclude = '''
+/(
+    \.git
+  | \.github
+  | __pycache__
+  | \.mypy_cache
+  | \.venv
+  | \.vscode
+  | build
+  | dist
+)/
+'''
 
 [tool.isort]
 profile = "black"
