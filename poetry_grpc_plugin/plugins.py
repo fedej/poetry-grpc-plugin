@@ -12,8 +12,8 @@ from grpc_tools import protoc
 from poetry.console.application import Application
 from poetry.console.commands.command import Command
 from poetry.console.commands.update import UpdateCommand
-from poetry.plugins import ApplicationPlugin
-from poetry.utils.helpers import module_name
+from poetry.core.utils.helpers import module_name
+from poetry.plugins.application_plugin import ApplicationPlugin
 
 
 def well_known_protos_path():
