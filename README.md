@@ -4,10 +4,10 @@ A [**Poetry**](https://python-poetry.org/) plugin to run the Protocol Buffers co
 
 ### Installing the plugin
 
-Requires Poetry version `1.2.0a2` or above
+Requires Poetry version `1.2.0rc2` or above
 
 ```shell
-poetry plugin add poetry-grpc-plugin
+poetry self add poetry-grpc-plugin
 ```
 
 ### Usage
