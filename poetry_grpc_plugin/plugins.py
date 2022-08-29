@@ -16,7 +16,7 @@ from poetry.core.utils.helpers import module_name
 from poetry.plugins.application_plugin import ApplicationPlugin
 
 
-def well_known_protos_path():
+def well_known_protos_path() -> str:
     if sys.version_info >= (3, 9):
 
         with importlib.resources.as_file(
