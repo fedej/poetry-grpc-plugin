@@ -76,6 +76,13 @@ class ProtocCommand(Command):
         ]
     ]
 
+    def __init__(self, config: Dict[str, str]) -> None:
+        super().__init__()
+        self.config = config
+        for o in self.options:
+            if o.name in config:
+                o.set_default(config[o.name])
+
     def handle(self) -> int:
         return run_protoc(**{o.name: self.option(o.name) for o in self.options})
 
@@ -104,7 +111,7 @@ class GrpcApplicationPlugin(ApplicationPlugin):
         self.poetry_protoc_config = config
 
         application.command_loader.register_factory(
-            ProtocCommand.name, lambda: ProtocCommand()
+            ProtocCommand.name, lambda: ProtocCommand(config)
         )
 
     def run_protoc(
