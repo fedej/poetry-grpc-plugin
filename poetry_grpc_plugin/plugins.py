@@ -42,9 +42,10 @@ def run_protoc(proto_path: str = ".", python_out: str = ".", **kwargs: str) -> i
 
     config = kwargs.copy()
     config["proto_path"] = str(inclusion_root)
-    config["grpc_out"] = kwargs.get("grpc_out", python_out)
+    config["python_out"] = python_out
+    config["grpc_python_out"] = kwargs.get("grpc_python_out", python_out)
     config["mypy_out"] = kwargs.get("mypy_out", python_out)
-    config["mypy_grpc_out"] = kwargs.get("mypy_grpc_out", config["grpc_out"])
+    config["mypy_grpc_out"] = kwargs.get("mypy_grpc_out", config["grpc_python_out"])
 
     args = [f"--{key}={value}" for key, value in config.items()]
 
