@@ -58,3 +58,20 @@ profile = "black"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+files = ["poetry_grpc_plugin"]
+ignore_missing_imports = true
+follow_imports = "silent"
+show_column_numbers = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+no_implicit_reexport = true
+no_implicit_optional = true
+strict_equality = true
+strict_optional = true
+check_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_subclassing_any = false
