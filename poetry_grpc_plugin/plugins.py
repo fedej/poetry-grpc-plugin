@@ -1,4 +1,5 @@
 import importlib.resources
+import logging
 import os
 import sys
 from pathlib import Path
@@ -14,6 +15,8 @@ from poetry.console.commands.command import Command
 from poetry.console.commands.update import UpdateCommand
 from poetry.core.utils.helpers import module_name
 from poetry.plugins.application_plugin import ApplicationPlugin
+
+logger = logging.getLogger(__name__)
 
 
 def well_known_protos_path() -> str:
@@ -38,6 +41,7 @@ def run_protoc(proto_path: str = ".", python_out: str = ".", **kwargs: str) -> i
             os.environ["PATH"] = f"{path}:{venv_dir}"
 
     inclusion_root = Path(proto_path).resolve(strict=True)
+    logger.warn("Locating protobuf files under: %s", inclusion_root)
     proto_files = [str(f.resolve()) for f in inclusion_root.rglob("*.proto")]
 
     config = kwargs.copy()
@@ -54,6 +58,7 @@ def run_protoc(proto_path: str = ".", python_out: str = ".", **kwargs: str) -> i
         + args
         + proto_files
     )
+    logger.warn("Invoking protoc as: %s", command)
     return protoc.main(command)
 
 
