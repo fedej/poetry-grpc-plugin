@@ -37,6 +37,9 @@ source = "git-tag"
 [tool.poetry.plugins."poetry.application.plugin"]
 grpc = "poetry_grpc_plugin.plugins:GrpcApplicationPlugin"
 
+[tool.black]
+line-length = 88
+
 [tool.isort]
 profile = "black"
 
