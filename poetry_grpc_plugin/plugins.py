@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, OrderedDict
 
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_events import COMMAND
@@ -11,7 +11,7 @@ from cleo.events.event_dispatcher import EventDispatcher
 from cleo.helpers import option
 from grpc_tools import protoc
 from poetry.console.application import Application
-from poetry.console.commands.command import Command
+from poetry.console.commands.env_command import EnvCommand
 from poetry.console.commands.update import UpdateCommand
 from poetry.core.utils.helpers import module_name
 from poetry.plugins.application_plugin import ApplicationPlugin
@@ -32,7 +32,14 @@ def well_known_protos_path() -> str:
         return pkg_resources.resource_filename("grpc_tools", "_proto")
 
 
-def run_protoc(proto_path: str = ".", python_out: str = ".", **kwargs: str) -> int:
+def run_protoc(
+    venv_path: str,
+    proto_path: str,
+    python_out: str,
+    grpc_python_out: Optional[str] = None,
+    mypy_out: Optional[str] = None,
+    mypy_grpc_out: Optional[str] = None,
+) -> int:
     # mypy-protobuf plugin is installed inside Poetry's virtualenv, needs to be in PATH
     if sys.executable:
         venv_dir = str(Path(sys.executable).parent.absolute())
@@ -44,12 +51,27 @@ def run_protoc(proto_path: str = ".", python_out: str = ".", **kwargs: str) -> i
     logger.warn("Locating protobuf files under: %s", inclusion_root)
     proto_files = [str(f.resolve()) for f in inclusion_root.rglob("*.proto")]
 
-    config = kwargs.copy()
+    # Prune files found under .venv
+    proto_files = [p for p in proto_files if not p.startswith(str(venv_path))]
+
+    # Default paths
+    grpc_python_out = grpc_python_out if grpc_python_out else python_out
+    mypy_out = mypy_out if mypy_out else python_out
+    mypy_grpc_out = mypy_grpc_out if mypy_grpc_out else grpc_python_out
+
+    # Ensure output dirs exist
+    for out_dir in set(
+        Path(p).resolve()
+        for p in (python_out, grpc_python_out, mypy_out, mypy_grpc_out)
+    ):
+        out_dir.mkdir(exist_ok=True, parents=True)
+
+    config = OrderedDict()
     config["proto_path"] = str(inclusion_root)
     config["python_out"] = python_out
-    config["grpc_python_out"] = kwargs.get("grpc_python_out", python_out)
-    config["mypy_out"] = kwargs.get("mypy_out", python_out)
-    config["mypy_grpc_out"] = kwargs.get("mypy_grpc_out", config["grpc_python_out"])
+    config["grpc_python_out"] = grpc_python_out
+    config["mypy_out"] = f"quiet:{mypy_out}"
+    config["mypy_grpc_out"] = f"quiet:{mypy_grpc_out}"
 
     args = [f"--{key}={value}" for key, value in config.items()]
 
@@ -62,17 +84,29 @@ def run_protoc(proto_path: str = ".", python_out: str = ".", **kwargs: str) -> i
     return protoc.main(command)
 
 
-class ProtocCommand(Command):
+class ProtocCommand(EnvCommand):
     name = "protoc"
 
     options = [
-        option(arg, default=".", value_required=False, flag=False)
-        for arg in [
-            "proto_path",
-            "python_out",
-            "grpc_python_out",
-            "mypy_out",
-            "mypy_grpc_out",
+        option(arg, description=descr, value_required=False, flag=False)
+        for (arg, descr) in [
+            ("proto_path", "Base path for protobuf resources."),
+            ("python_out", "Output path for generated protobuf wrappers."),
+            (
+                "grpc_python_out",
+                "Output path for generated gRPC wrappers."
+                + "Defaults to same path as python_out",
+            ),
+            (
+                "mypy_out",
+                "Output path for mypy type information for generated protobuf wrappers."
+                + "Defaults to same path as python_out.",
+            ),
+            (
+                "mypy_grpc_out",
+                "Output path for mypy type information for generated gRPC wrappers."
+                + "Defaults to same path as grpc_python_out.",
+            ),
         ]
     ]
 
@@ -84,45 +118,45 @@ class ProtocCommand(Command):
                 o.set_default(config[o.name])
 
     def handle(self) -> int:
-        return run_protoc(**{o.name: self.option(o.name) for o in self.options})
+        args = {o.name: self.option(o.name) for o in self.options}
+        args = {name: value for name, value in args.items() if value is not None}
+        return run_protoc(self.env.path, **args)
 
 
 class GrpcApplicationPlugin(ApplicationPlugin):
-    _poetry_protoc_config: Optional[Dict[str, str]] = None
+    _protoc_command: Optional[ProtocCommand]
 
     @property
-    def poetry_protoc_config(self) -> Optional[Dict[str, str]]:
-        return self._poetry_protoc_config
+    def protoc_command(self) -> Optional[ProtocCommand]:
+        return self._protoc_command
 
-    @poetry_protoc_config.setter
-    def poetry_protoc_config(self, value: Dict[str, str]) -> None:
-        self._poetry_protoc_config = value
+    @protoc_command.setter
+    def protoc_command(self, value: ProtocCommand) -> None:
+        self._protoc_command = value
 
     def activate(self, application: Application) -> None:
         poetry = application.poetry
         tool_data: Dict[str, Any] = poetry.pyproject.data.get("tool", {})
 
-        if "poetry-grpc-plugin" in tool_data:
-            application.event_dispatcher.add_listener(COMMAND, self.run_protoc)
-
         config = tool_data.get("poetry-grpc-plugin", {})
         if "python_out" not in config:
             config["python_out"] = module_name(poetry.package.name)
-        self.poetry_protoc_config = config
+        if "proto_path" not in config:
+            config["proto_path"] = "."
 
+        self.protoc_command = ProtocCommand(config)
         application.command_loader.register_factory(
-            ProtocCommand.name, lambda: ProtocCommand(config)
+            ProtocCommand.name, lambda: self.protoc_command
         )
+        if "poetry-grpc-plugin" in tool_data:
+            application.event_dispatcher.add_listener(COMMAND, self.run_protoc)
 
     def run_protoc(
         self, event: ConsoleCommandEvent, event_name: str, dispatcher: EventDispatcher
     ) -> None:
 
-        if (
-            not isinstance(event.command, UpdateCommand)
-            or not self.poetry_protoc_config
-        ):
+        if not isinstance(event.command, UpdateCommand) or not self.protoc_command:
             return
 
-        if run_protoc(**self.poetry_protoc_config) != 0:
+        if run_protoc(event.command.env.path, **self.protoc_command.config) != 0:
             raise Exception("Error: {} failed".format(event.command))
