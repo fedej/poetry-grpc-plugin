@@ -66,14 +66,16 @@ def run_protoc(
     ):
         out_dir.mkdir(exist_ok=True, parents=True)
 
-    config = OrderedDict()
-    config["proto_path"] = str(inclusion_root)
-    config["python_out"] = python_out
-    config["grpc_python_out"] = grpc_python_out
-    config["mypy_out"] = f"quiet:{mypy_out}"
-    config["mypy_grpc_out"] = f"quiet:{mypy_grpc_out}"
-
-    args = [f"--{key}={value}" for key, value in config.items()]
+    args = [
+        f"--{key}={value}"
+        for key, value in [
+            ("proto_path", str(inclusion_root)),
+            ("python_out", python_out),
+            ("grpc_python_out", grpc_python_out),
+            ("mypy_out", f"quiet:{mypy_out}"),
+            ("mypy_grpc_out", f"quiet:{mypy_grpc_out}"),
+        ]
+    ]
 
     command = (
         ["grpc_tools.protoc", f"--proto_path={well_known_protos_path()}"]
