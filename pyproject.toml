@@ -22,7 +22,7 @@ classifiers = [
 python = "^3.7"
 grpcio-tools = "^1.39.0"
 poetry = "^1.2.0"
-mypy-protobuf = "^2.9"
+mypy-protobuf = ">=2.9,<4.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^21.7-beta.0"
