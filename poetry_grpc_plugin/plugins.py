@@ -48,7 +48,7 @@ def run_protoc(
             os.environ["PATH"] = f"{path}:{venv_dir}"
 
     inclusion_root = Path(proto_path).resolve(strict=True)
-    logger.warn("Locating protobuf files under: %s", inclusion_root)
+    logger.info("Locating protobuf files under: %s", inclusion_root)
     proto_files = [str(f.resolve()) for f in inclusion_root.rglob("*.proto")]
 
     # Prune files found under .venv
@@ -82,7 +82,7 @@ def run_protoc(
         + args
         + proto_files
     )
-    logger.warn("Invoking protoc as: %s", command)
+    logger.debug("Invoking protoc as: %s", command)
     return protoc.main(command)
 
 
