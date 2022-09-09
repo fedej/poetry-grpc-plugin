@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, OrderedDict
+from typing import Any, Dict, Optional
 
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_events import COMMAND
@@ -33,7 +33,7 @@ def well_known_protos_path() -> str:
 
 
 def run_protoc(
-    venv_path: str,
+    venv_path: Path,
     proto_path: str,
     python_out: str,
     grpc_python_out: Optional[str] = None,
