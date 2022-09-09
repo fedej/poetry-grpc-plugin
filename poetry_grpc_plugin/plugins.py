@@ -95,17 +95,17 @@ class ProtocCommand(EnvCommand):
             (
                 "grpc_python_out",
                 "Output path for generated gRPC wrappers."
-                + "Defaults to same path as python_out",
+                + " Defaults to same path as python_out",
             ),
             (
                 "mypy_out",
                 "Output path for mypy type information for generated protobuf wrappers."
-                + "Defaults to same path as python_out.",
+                + " Defaults to same path as python_out.",
             ),
             (
                 "mypy_grpc_out",
                 "Output path for mypy type information for generated gRPC wrappers."
-                + "Defaults to same path as grpc_python_out.",
+                + " Defaults to same path as grpc_python_out.",
             ),
         ]
     ]

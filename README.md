@@ -23,9 +23,9 @@ Usage:
 Options:
       --proto_path[=PROTO_PATH]            Base path for protobuf resources. [default: "<module_name>"]
       --python_out[=PYTHON_OUT]            Output path for generated protobuf wrappers. [default: "."]
-      --grpc_python_out[=GRPC_PYTHON_OUT]  Output path for generated gRPC wrappers.Defaults to same path as python_out
-      --mypy_out[=MYPY_OUT]                Output path for mypy type information for generated protobuf wrappers.Defaults to same path as python_out.
-      --mypy_grpc_out[=MYPY_GRPC_OUT]      Output path for mypy type information for generated gRPC wrappers.Defaults to same path as grpc_python_out.
+      --grpc_python_out[=GRPC_PYTHON_OUT]  Output path for generated gRPC wrappers. Defaults to same path as python_out
+      --mypy_out[=MYPY_OUT]                Output path for mypy type information for generated protobuf wrappers. Defaults to same path as python_out.
+      --mypy_grpc_out[=MYPY_GRPC_OUT]      Output path for mypy type information for generated gRPC wrappers. Defaults to same path as grpc_python_out.
       ...
 ```
 
