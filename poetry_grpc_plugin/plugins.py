@@ -126,39 +126,43 @@ class ProtocCommand(EnvCommand):
 
 
 class GrpcApplicationPlugin(ApplicationPlugin):
-    _protoc_command: Optional[ProtocCommand]
+    _application: Application
 
     @property
-    def protoc_command(self) -> Optional[ProtocCommand]:
-        return self._protoc_command
+    def application(self) -> Optional[Application]:
+        return self._application
 
-    @protoc_command.setter
-    def protoc_command(self, value: ProtocCommand) -> None:
-        self._protoc_command = value
+    @application.setter
+    def application(self, value: Application) -> None:
+        self._application = value
 
     def activate(self, application: Application) -> None:
-        poetry = application.poetry
+        self.application = application
+        application.command_loader.register_factory(
+            ProtocCommand.name, lambda: ProtocCommand(self.load_config() or {})
+        )
+        application.event_dispatcher.add_listener(COMMAND, self.run_protoc)
+
+    def load_config(self) -> Optional[Dict[str, str]]:
+        poetry = self._application.poetry
         tool_data: Dict[str, Any] = poetry.pyproject.data.get("tool", {})
 
-        config = tool_data.get("poetry-grpc-plugin", {})
+        config = tool_data.get("poetry-grpc-plugin")
+        if config is None:
+            return None
         if "python_out" not in config:
             config["python_out"] = module_name(poetry.package.name)
         if "proto_path" not in config:
             config["proto_path"] = "."
-
-        self.protoc_command = ProtocCommand(config)
-        application.command_loader.register_factory(
-            ProtocCommand.name, lambda: self.protoc_command
-        )
-        if "poetry-grpc-plugin" in tool_data:
-            application.event_dispatcher.add_listener(COMMAND, self.run_protoc)
+        return config
 
     def run_protoc(
         self, event: ConsoleCommandEvent, event_name: str, dispatcher: EventDispatcher
     ) -> None:
-
         if not isinstance(event.command, UpdateCommand) or not self.protoc_command:
             return
-
-        if run_protoc(event.command.env.path, **self.protoc_command.config) != 0:
+        config = self.load_config()
+        if config is None:
+            return
+        if run_protoc(event.command.env.path, **config) != 0:
             raise Exception("Error: {} failed".format(event.command))
