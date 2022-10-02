@@ -159,7 +159,7 @@ class GrpcApplicationPlugin(ApplicationPlugin):
     def run_protoc(
         self, event: ConsoleCommandEvent, event_name: str, dispatcher: EventDispatcher
     ) -> None:
-        if not isinstance(event.command, UpdateCommand) or not self.protoc_command:
+        if not isinstance(event.command, UpdateCommand) or not self.application:
             return
         config = self.load_config()
         if config is None:
