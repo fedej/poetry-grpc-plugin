@@ -163,6 +163,9 @@ class GrpcApplicationPlugin(ApplicationPlugin):
             return
         config = self.load_config()
         if config is None:
+            logger.debug(
+                "Skipped update, [tool.poetry-grpc-plugin] or pyproject.toml missing."
+            )
             return
         if run_protoc(event.command.env.path, **config) != 0:
             raise Exception("Error: {} failed".format(event.command))
