@@ -428,16 +428,15 @@ python-versions = "*"
 
 [[package]]
 name = "mypy-protobuf"
-version = "2.9"
+version = "3.4.0"
 description = "Generate mypy stub files from protobuf specs"
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
-grpcio-tools = ">=1.38.1"
-protobuf = ">=3.17.3"
-types-protobuf = ">=3.17.3"
+protobuf = ">=4.21.8"
+types-protobuf = ">=3.20.4"
 
 [[package]]
 name = "packaging"
@@ -781,23 +780,12 @@ optional = false
 python-versions = "*"
 
 [[package]]
-name = "types-futures"
-version = "0.1.6"
-description = "Typing stubs for futures"
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
 name = "types-protobuf"
-version = "3.17.4"
+version = "3.20.4.2"
 description = "Typing stubs for protobuf"
 category = "main"
 optional = false
 python-versions = "*"
-
-[package.dependencies]
-types-futures = "*"
 
 [[package]]
 name = "typing-extensions"
@@ -873,7 +861,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=4.6)", "pytest-black (
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "0c74c2eac9d4206c4320f1a5db848e3a92c29b4217a0018a62a0a679fb9974aa"
+content-hash = "15463fbe4f21ebc96a4b862361ffda2fd4917108696d8c55d08ea47905f011c6"
 
 [metadata.files]
 appdirs = [
@@ -1220,8 +1208,8 @@ mypy-extensions = [
     {file = "mypy_extensions-0.4.3.tar.gz", hash = "sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8"},
 ]
 mypy-protobuf = [
-    {file = "mypy-protobuf-2.9.tar.gz", hash = "sha256:278172935d7121c2f8c7c0a05518dd565a2b76d9e9c4a0a3fcd08a21fa685d43"},
-    {file = "mypy_protobuf-2.9-py3-none-any.whl", hash = "sha256:1667660a5cbc7c3f1d243a8eab243f3c7d5fc35636591a966d94d5b7476e3b6b"},
+    {file = "mypy-protobuf-3.4.0.tar.gz", hash = "sha256:7d75a079651b105076776a35a5405e3fa773b8a167118f1b712e443e9a6c18a2"},
+    {file = "mypy_protobuf-3.4.0-py3-none-any.whl", hash = "sha256:da33dfde7547ff57e5ba5564126cbfa114f14413b2fa50759b1fa5de1e4ab511"},
 ]
 packaging = [
     {file = "packaging-20.9-py2.py3-none-any.whl", hash = "sha256:67714da7f7bc052e064859c05c595155bd1ee9f69f76557e21f051443c20947a"},
@@ -1465,13 +1453,9 @@ typed-ast = [
     {file = "typed_ast-1.4.3-cp39-cp39-win_amd64.whl", hash = "sha256:9c6d1a54552b5330bc657b7ef0eae25d00ba7ffe85d9ea8ae6540d2197a3788c"},
     {file = "typed_ast-1.4.3.tar.gz", hash = "sha256:fb1bbeac803adea29cedd70781399c99138358c26d05fcbd23c13016b7f5ec65"},
 ]
-types-futures = [
-    {file = "types-futures-0.1.6.tar.gz", hash = "sha256:da372dd55dc08c257de1e3dfd56273e44af9668e077047b0509adcfc43dd2838"},
-    {file = "types_futures-0.1.6-py3-none-any.whl", hash = "sha256:7cb32c3fb4885089d78873a28ad33db3d5300661eac8b3ad327f4f5616fdf742"},
-]
 types-protobuf = [
-    {file = "types-protobuf-3.17.4.tar.gz", hash = "sha256:36cfec22f0096c9be2d9e44ad33480eb91969ffa72a51fa55842597cf59f8264"},
-    {file = "types_protobuf-3.17.4-py3-none-any.whl", hash = "sha256:b6f53af01ab19b6d19a979c00a06dc73723180f8bf0129761542cfadc46fdd34"},
+    {file = "types-protobuf-3.20.4.2.tar.gz", hash = "sha256:fd65ab8502f9a08e089f2cad26d52fab04cd57322cf896c570ab3391ca760bae"},
+    {file = "types_protobuf-3.20.4.2-py3-none-any.whl", hash = "sha256:329bec368fd11a8cb95192b33aa61e59e0b30f659ec14be75301c651026c4cc1"},
 ]
 typing-extensions = [
     {file = "typing_extensions-3.10.0.0-py2-none-any.whl", hash = "sha256:0ac0f89795dd19de6b97debb0c6af1c70987fd80a2d62d1958f7e56fcc31b497"},
