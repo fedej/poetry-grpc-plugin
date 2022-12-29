@@ -7,8 +7,11 @@ from typing import Any, Dict, Optional
 
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_events import COMMAND
+from cleo.events.event import Event
 from cleo.events.event_dispatcher import EventDispatcher
 from cleo.helpers import option
+from cleo.io.io import IO
+from cleo.io.outputs.output import Verbosity
 from grpc_tools import protoc
 from poetry.console.application import Application
 from poetry.console.commands.env_command import EnvCommand
@@ -33,6 +36,7 @@ def well_known_protos_path() -> str:
 
 
 def run_protoc(
+    io: IO,
     venv_path: Path,
     proto_path: str,
     python_out: str,
@@ -43,12 +47,25 @@ def run_protoc(
     # mypy-protobuf plugin is installed inside Poetry's virtualenv, needs to be in PATH
     if sys.executable:
         venv_dir = str(Path(sys.executable).parent.absolute())
+        io.write_line(
+            f"<debug>Adding virtual environment dir '{venv_dir}' to PATH</>",
+            Verbosity.DEBUG,
+        )
         path = os.getenv("PATH", "")
         if path and venv_dir not in path:
             os.environ["PATH"] = f"{path}:{venv_dir}"
+        io.write_line(
+            f"<debug>Modified PATH='{os.environ['PATH']}'</>",
+            Verbosity.DEBUG,
+        )
+    else:
+        io.write_line(
+            f"<debug>Unable to retrieve the real path for sys.executable, unchanged PATH='{os.environ['PATH']}'</>",
+            Verbosity.DEBUG,
+        )
 
     inclusion_root = Path(proto_path).resolve(strict=True)
-    logger.info("Locating protobuf files under: %s", inclusion_root)
+    io.write_line(f"<info>Locating protobuf files under: {inclusion_root}</>")
     proto_files = [str(f.resolve()) for f in inclusion_root.rglob("*.proto")]
 
     # Prune files found under .venv
@@ -82,8 +99,13 @@ def run_protoc(
         + args
         + proto_files
     )
-    logger.debug("Invoking protoc as: %s", command)
-    return protoc.main(command)
+    io.write_line(f"<debug>Invoking protoc as: {command}</>", Verbosity.DEBUG)
+    protoc_result = protoc.main(command)
+    if protoc_result == 0:
+        io.write_line(
+            f"<info>Successfully generated python files in '{python_out}' and gRPC files in '{grpc_python_out}'</>"
+        )
+    return protoc_result
 
 
 class ProtocCommand(EnvCommand):
@@ -122,7 +144,7 @@ class ProtocCommand(EnvCommand):
     def handle(self) -> int:
         args = {o.name: self.option(o.name) for o in self.options}
         args = {name: value for name, value in args.items() if value is not None}
-        return run_protoc(self.env.path, **args)
+        return run_protoc(self.io, self.env.path, **args)
 
 
 class GrpcApplicationPlugin(ApplicationPlugin):
@@ -141,7 +163,13 @@ class GrpcApplicationPlugin(ApplicationPlugin):
         application.command_loader.register_factory(
             ProtocCommand.name, lambda: ProtocCommand(self.load_config() or {})
         )
-        application.event_dispatcher.add_listener(COMMAND, self.run_protoc)
+        if application.event_dispatcher:
+            application.event_dispatcher.add_listener(COMMAND, self.run_protoc)
+            logger.debug("Added protoc 'update' listener")
+        else:
+            logger.warning(
+                "Not adding 'update' listener, application.event_dispatched is missing"
+            )
 
     def load_config(self) -> Optional[Dict[str, str]]:
         poetry = self._application.poetry
@@ -157,15 +185,21 @@ class GrpcApplicationPlugin(ApplicationPlugin):
         return config
 
     def run_protoc(
-        self, event: ConsoleCommandEvent, event_name: str, dispatcher: EventDispatcher
+        self, event: Event, event_name: str, dispatcher: EventDispatcher
     ) -> None:
-        if not isinstance(event.command, UpdateCommand) or not self.application:
+        if (
+            not isinstance(event, ConsoleCommandEvent)
+            or not isinstance(event.command, UpdateCommand)
+            or not self.application
+        ):
             return
         config = self.load_config()
+
         if config is None:
-            logger.debug(
-                "Skipped update, [tool.poetry-grpc-plugin] or pyproject.toml missing."
+            event.io.write_line(
+                "<debug>Skipped update, [tool.poetry-grpc-plugin] or pyproject.toml missing.</>",
+                Verbosity.DEBUG,
             )
             return
-        if run_protoc(event.command.env.path, **config) != 0:
+        if run_protoc(event.io, event.command.env.path, **config) != 0:
             raise Exception("Error: {} failed".format(event.command))
