@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 def well_known_protos_path() -> str:
     if sys.version_info >= (3, 9):
-
         with importlib.resources.as_file(
             importlib.resources.files("grpc_tools") / "_proto"
         ) as path:

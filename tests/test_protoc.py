@@ -2,12 +2,14 @@ import os
 import tempfile
 from pathlib import Path
 from shutil import copy
+from typing import cast
 
 from cleo.io.buffered_io import BufferedIO
 from cleo.io.inputs.string_input import StringInput
 from cleo.io.outputs.buffered_output import BufferedOutput
 from cleo.io.outputs.output import Verbosity
 from poetry.console.application import Application
+from poetry.console.commands.env_command import EnvCommand
 from poetry.factory import Factory
 from poetry.utils.env import EnvManager
 
@@ -34,7 +36,7 @@ build-backend = "poetry.core.masonry.api"
 """
 
 
-def test_update():
+def test_update() -> None:
     cwd = Path.cwd()
     with tempfile.TemporaryDirectory() as temp_dir:
         os.mkdir(f"{temp_dir}/protos")
@@ -55,19 +57,21 @@ def test_update():
     os.chdir(cwd)
 
 
-def test_protoc():
+def test_protoc() -> None:
     cwd = Path.cwd()
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir_name:
+        temp_dir = Path(temp_dir_name)
         with Path(temp_dir, "pyproject.toml").open("w+b") as temp_pyproject:
             temp_pyproject.writelines([line + b"\n" for line in pyproject.split(b"\n")])
             temp_pyproject.flush()
-        os.mkdir(f"{temp_dir}/protos")
-        copy(Path("tests", "demo.proto"), Path(temp_dir, "protos", "demo.proto"))
+        os.mkdir(temp_dir / "protos")
+        copy(Path("tests", "demo.proto"), temp_dir / "protos" / "demo.proto")
         os.chdir(temp_dir)
         poetry = Factory().create_poetry(temp_dir)
         plugin = GrpcApplicationPlugin()
         plugin.activate(Application())
-        command = plugin.application.command_loader.get("protoc")
+        assert plugin.application
+        command = cast(EnvCommand, plugin.application.command_loader.get("protoc"))
         command.set_env(EnvManager(poetry).create_venv("unit-test"))
         io = BufferedIO()
         io.set_verbosity(Verbosity.DEBUG)
