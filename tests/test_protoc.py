@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 from pathlib import Path
 from shutil import copy
@@ -38,9 +39,12 @@ build-backend = "poetry.core.masonry.api"
 
 def test_update() -> None:
     cwd = Path.cwd()
-    with tempfile.TemporaryDirectory() as temp_dir:
-        os.mkdir(f"{temp_dir}/protos")
-        copy(Path("tests", "demo.proto"), Path(temp_dir, "protos", "demo.proto"))
+    with tempfile.TemporaryDirectory(
+        ignore_cleanup_errors=True, prefix=f"test_update{sys.version_info.minor}"
+    ) as temp_dir_name:
+        temp_dir = Path(temp_dir_name)
+        os.mkdir(temp_dir / "protos")
+        copy(cwd / "tests" / "demo.proto", temp_dir / "protos" / "demo.proto")
         os.chdir(temp_dir)
         with Path(temp_dir, "pyproject.toml").open("w+b") as temp_pyproject:
             temp_pyproject.writelines([line + b"\n" for line in pyproject.split(b"\n")])
@@ -54,18 +58,20 @@ def test_update() -> None:
         assert Path(temp_dir, "src", "demo_pb2_grpc.pyi").exists()
         assert Path(temp_dir, "src", "demo_pb2.py").exists()
         assert Path(temp_dir, "src", "demo_pb2.pyi").exists()
-    os.chdir(cwd)
+        os.chdir(cwd)
 
 
 def test_protoc() -> None:
     cwd = Path.cwd()
-    with tempfile.TemporaryDirectory() as temp_dir_name:
+    with tempfile.TemporaryDirectory(
+        ignore_cleanup_errors=True, prefix=f"test_protoc{sys.version_info.minor}"
+    ) as temp_dir_name:
         temp_dir = Path(temp_dir_name)
         with Path(temp_dir, "pyproject.toml").open("w+b") as temp_pyproject:
             temp_pyproject.writelines([line + b"\n" for line in pyproject.split(b"\n")])
             temp_pyproject.flush()
         os.mkdir(temp_dir / "protos")
-        copy(Path("tests", "demo.proto"), temp_dir / "protos" / "demo.proto")
+        copy(cwd / "tests" / "demo.proto", temp_dir / "protos" / "demo.proto")
         os.chdir(temp_dir)
         poetry = Factory().create_poetry(temp_dir)
         plugin = GrpcApplicationPlugin()
@@ -84,4 +90,4 @@ def test_protoc() -> None:
         assert Path(temp_dir, "src", "demo_pb2_grpc.pyi").exists()
         assert Path(temp_dir, "src", "demo_pb2.py").exists()
         assert Path(temp_dir, "src", "demo_pb2.pyi").exists()
-    os.chdir(cwd)
+        os.chdir(cwd)
