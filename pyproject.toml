@@ -21,7 +21,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.7"
 grpcio-tools = "^1.39.0"
-poetry = ">=1.2.0,<1.6"
+poetry = ">=1.2.0,<2.0"
 mypy-protobuf = ">=2.9,<4.0"
 
 [tool.poetry.group.dev.dependencies]
