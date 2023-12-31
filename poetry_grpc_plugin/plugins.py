@@ -38,7 +38,6 @@ def well_known_protos_path() -> str:
 def run_protoc(
     io: IO,
     venv_path: Path,
-    python_executable: Path,
     proto_path: str,
     python_out: str,
     grpc_python_out: Optional[str] = None,
@@ -47,7 +46,7 @@ def run_protoc(
     venv_proto_paths: Optional[List[str]] = None,
 ) -> int:
     # mypy-protobuf plugin is installed inside Poetry's virtualenv, needs to be in PATH
-    venv_bin_dir = str(python_executable.parent.absolute())
+    venv_bin_dir = sysconfig.get_path("scripts")
     io.write_line(
         f"<debug>Adding virtual environment bin dir '{venv_bin_dir}' to PATH</>",
         Verbosity.DEBUG,
@@ -89,6 +88,13 @@ def run_protoc(
             ("mypy_grpc_out", f"quiet:{mypy_grpc_out}"),
         ]
     ]
+
+    if os.name == "nt":
+        # Explicitly set the mypy plugin path in Windows
+        args.append(f"--plugin=protoc-gen-mypy={venv_bin_dir}/protoc-gen-mypy.exe")
+        args.append(
+            f"--plugin=protoc-gen-mypy_grpc={venv_bin_dir}/protoc-gen-mypy_grpc.exe"
+        )
 
     if venv_proto_paths and isinstance(venv_proto_paths, list):
         for venv_proto_path_str in venv_proto_paths:
@@ -165,7 +171,7 @@ class ProtocCommand(EnvCommand):
     def handle(self) -> int:
         args = {o.name: self.option(o.name) for o in self.options}
         args = {name: value for name, value in args.items() if value is not None}
-        return run_protoc(self.io, self.env.path, self.env.python, **args)
+        return run_protoc(self.io, self.env.path, **args)
 
 
 class GrpcApplicationPlugin(ApplicationPlugin):
@@ -222,10 +228,5 @@ class GrpcApplicationPlugin(ApplicationPlugin):
                 Verbosity.DEBUG,
             )
             return
-        if (
-            run_protoc(
-                event.io, event.command.env.path, event.command.env.python, **config
-            )
-            != 0
-        ):
+        if run_protoc(event.io, event.command.env.path, **config) != 0:
             raise Exception("Error: {} failed".format(event.command))
