@@ -47,14 +47,14 @@ def run_protoc(
     venv_proto_paths: Optional[List[str]] = None,
 ) -> int:
     # mypy-protobuf plugin is installed inside Poetry's virtualenv, needs to be in PATH
-    venv_dir = str(python_executable.parent.absolute())
+    venv_bin_dir = str(python_executable.parent.absolute())
     io.write_line(
-        f"<debug>Adding virtual environment dir '{venv_dir}' to PATH</>",
+        f"<debug>Adding virtual environment bin dir '{venv_bin_dir}' to PATH</>",
         Verbosity.DEBUG,
     )
     path = os.getenv("PATH", "")
-    if path and venv_dir not in path:
-        os.environ["PATH"] = f"{path}:{venv_dir}"
+    if path and venv_bin_dir not in path:
+        os.environ["PATH"] = f"{path}:{venv_bin_dir}"
     io.write_line(
         f"<debug>Modified PATH='{os.environ['PATH']}'</>",
         Verbosity.DEBUG,
