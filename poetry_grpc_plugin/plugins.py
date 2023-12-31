@@ -2,8 +2,9 @@ import importlib.resources
 import logging
 import os
 import sys
+import sysconfig
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_events import COMMAND
@@ -37,31 +38,27 @@ def well_known_protos_path() -> str:
 def run_protoc(
     io: IO,
     venv_path: Path,
+    python_executable: Path,
     proto_path: str,
     python_out: str,
     grpc_python_out: Optional[str] = None,
     mypy_out: Optional[str] = None,
     mypy_grpc_out: Optional[str] = None,
+    venv_proto_paths: Optional[List[str]] = None,
 ) -> int:
     # mypy-protobuf plugin is installed inside Poetry's virtualenv, needs to be in PATH
-    if sys.executable:
-        venv_dir = str(Path(sys.executable).parent.absolute())
-        io.write_line(
-            f"<debug>Adding virtual environment dir '{venv_dir}' to PATH</>",
-            Verbosity.DEBUG,
-        )
-        path = os.getenv("PATH", "")
-        if path and venv_dir not in path:
-            os.environ["PATH"] = f"{path}:{venv_dir}"
-        io.write_line(
-            f"<debug>Modified PATH='{os.environ['PATH']}'</>",
-            Verbosity.DEBUG,
-        )
-    else:
-        io.write_line(
-            f"<debug>Unable to retrieve the real path for sys.executable, unchanged PATH='{os.environ['PATH']}'</>",
-            Verbosity.DEBUG,
-        )
+    venv_bin_dir = str(python_executable.parent.absolute())
+    io.write_line(
+        f"<debug>Adding virtual environment bin dir '{venv_bin_dir}' to PATH</>",
+        Verbosity.DEBUG,
+    )
+    path = os.getenv("PATH", "")
+    if path and venv_bin_dir not in path:
+        os.environ["PATH"] = f"{path}:{venv_bin_dir}"
+    io.write_line(
+        f"<debug>Modified PATH='{os.environ['PATH']}'</>",
+        Verbosity.DEBUG,
+    )
 
     inclusion_root = Path(proto_path).resolve(strict=True)
     io.write_line(f"<info>Locating protobuf files under: {inclusion_root}</>")
@@ -93,6 +90,13 @@ def run_protoc(
         ]
     ]
 
+    if venv_proto_paths and isinstance(venv_proto_paths, list):
+        for venv_proto_path_str in venv_proto_paths:
+            venv_proto_path = Path(sysconfig.get_path("purelib"), venv_proto_path_str)
+            args.append(
+                f"--proto_path={Path(sysconfig.get_path('purelib'), venv_proto_path)}"
+            )
+
     command = (
         ["grpc_tools.protoc", f"--proto_path={well_known_protos_path()}"]
         + args
@@ -111,26 +115,44 @@ class ProtocCommand(EnvCommand):
     name = "protoc"
 
     options = [
-        option(arg, description=descr, value_required=False, flag=False)
-        for (arg, descr) in [
-            ("proto_path", "Base path for protobuf resources."),
-            ("python_out", "Output path for generated protobuf wrappers."),
-            (
-                "grpc_python_out",
-                "Output path for generated gRPC wrappers."
-                + " Defaults to same path as python_out",
-            ),
-            (
-                "mypy_out",
-                "Output path for mypy type information for generated protobuf wrappers."
-                + " Defaults to same path as python_out.",
-            ),
-            (
-                "mypy_grpc_out",
-                "Output path for mypy type information for generated gRPC wrappers."
-                + " Defaults to same path as grpc_python_out.",
-            ),
-        ]
+        option(
+            "proto_path",
+            description="Base path for protobuf resources.",
+            value_required=False,
+            flag=False,
+        ),
+        option(
+            "venv_proto_paths",
+            description="Additional protobuf resources base paths, from the virtual environment.",
+            value_required=False,
+            flag=False,
+            multiple=True,
+            default=None,
+        ),
+        option(
+            "python_out",
+            description="Output path for generated protobuf wrappers.",
+            value_required=False,
+            flag=False,
+        ),
+        option(
+            "grpc_python_out",
+            description="Output path for generated gRPC wrappers. Defaults to same path as python_out",
+            value_required=False,
+            flag=False,
+        ),
+        option(
+            "mypy_out",
+            description="Output path for mypy type information for generated protobuf wrappers. Defaults to same path as python_out.",
+            value_required=False,
+            flag=False,
+        ),
+        option(
+            "mypy_grpc_out",
+            description="Output path for mypy type information for generated gRPC wrappers. Defaults to same path as grpc_python_out.",
+            value_required=False,
+            flag=False,
+        ),
     ]
 
     def __init__(self, config: Dict[str, str]) -> None:
@@ -143,7 +165,7 @@ class ProtocCommand(EnvCommand):
     def handle(self) -> int:
         args = {o.name: self.option(o.name) for o in self.options}
         args = {name: value for name, value in args.items() if value is not None}
-        return run_protoc(self.io, self.env.path, **args)
+        return run_protoc(self.io, self.env.path, self.env.python, **args)
 
 
 class GrpcApplicationPlugin(ApplicationPlugin):
@@ -200,5 +222,10 @@ class GrpcApplicationPlugin(ApplicationPlugin):
                 Verbosity.DEBUG,
             )
             return
-        if run_protoc(event.io, event.command.env.path, **config) != 0:
+        if (
+            run_protoc(
+                event.io, event.command.env.path, event.command.env.python, **config
+            )
+            != 0
+        ):
             raise Exception("Error: {} failed".format(event.command))
